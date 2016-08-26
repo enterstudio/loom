@@ -26,21 +26,21 @@ function DataService($http) {
     };
 
     function setActiveRun(runId) {
-	return $http.get('/api/abstract-workflow-runs/' + runId + '/')
+	return $http.get('/api/workflow-runs/' + runId + '/')
             .then(function(response) {
 		activeData.run = response.data;
             });
     };
 
     function setActiveTemplate(templateId) {
-	return $http.get('/api/abstract-workflows/' + templateId + '/')
+	return $http.get('/api/workflows/' + templateId + '/')
             .then(function(response) {
 		activeData.template = response.data;
             });
     };
 
     function setActiveFile(fileId) {
-	return $http.get('/api/file-data-objects/' + fileId + '/')
+	return $http.get('/api/files/' + fileId + '/')
             .then(function(response) {
 		activeData.file = response.data;
             });
@@ -61,19 +61,19 @@ function DataService($http) {
     };
 
     function getImportedFiles() {
-	return $http.get('/api/imported-file-data-objects/')
+	return $http.get('/api/imported-files/')
 	    .then(function(response) {
 		return response.data;
 	    });
     };
     function getResultFiles() {
-	return $http.get('/api/result-file-data-objects/')
+	return $http.get('/api/result-files/')
 	    .then(function(response) {
 		return response.data;
 	    });
     };
     function getLogFiles() {
-	return $http.get('/api/log-file-data-objects/')
+	return $http.get('/api/log-files/')
 	    .then(function(response) {
 		return response.data;
 	    });

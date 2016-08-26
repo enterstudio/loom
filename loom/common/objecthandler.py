@@ -112,25 +112,25 @@ class ObjectHandler(object):
 
     # ---- Post/Put/Get [object_type] methods ----
 
-    def post_data_object(self, data_object):
+    def post_file_data_object(self, file_data_object):
         return self._post_object(
-            data_object,
-            'data-objects/')
+            file_data_object,
+            'files/')
 
-    def update_data_object(self, data_object_id, data_object_update):
+    def update_file_data_object(self, file_id, file_data_object_update):
         return self._put_object(
-            data_object_update,
-            'data-objects/%s/' % data_object_id)
+            file_data_object_update,
+            'files/%s/' % file_id)
 
     def get_file_data_object(self, file_id):
         return self._get_object(
-            'file-data-objects/%s/' % file_id)
+            'files/%s/' % file_id)
 
     def get_file_data_object_index(self, query_string='', min=0, max=float('inf')):
         if query_string:
-            url = 'file-data-objects/?q='+query_string
+            url = 'files/?q='+query_string
         else:
-            url = 'file-data-objects/'
+            url = 'files/'
         file_data_objects =  self._get_object_index(url)
         if len(file_data_objects) < min:
             raise IdMatchedTooFewFileDataObjectsError('Found %s FileDataObjects, expected at least %s' %(len(file_data_objects), min))
@@ -138,36 +138,21 @@ class ObjectHandler(object):
             raise IdMatchedTooManyFileDataObjectsError('Found %s FileDataObjects, expected at most %s' %(len(file_data_objects), max))
         return file_data_objects
 
-    def get_file_locations_by_file(self, file_id):
-        return self._get_object(
-            'file-data-objects/'+file_id+'/file-locations/'
-        )
-
-    def post_file_location(self, file_location):
-        return self._post_object(
-            file_location,
-            'file-locations/')
-
     def update_file_location(self, file_location_id, file_location_update):
         return self._put_object(
             file_location_update,
             'file-locations/%s/' % file_location_id)
-
-    def get_file_imports_by_file(self, file_id):
-        return self._get_object_index(
-            'file-data-objects/' + file_id + '/file-imports/'
-        )
     
     def get_abstract_workflow(self, workflow_id):
         return self._get_object(
-            'abstract-workflows/%s/' % workflow_id
+            'workflows/%s/' % workflow_id
         )
 
     def get_abstract_workflow_index(self, query_string='', min=0, max=float('inf')):
         if query_string:
-            url = 'abstract-workflows/?q='+query_string
+            url = 'workflows/?q='+query_string
         else:
-            url = 'abstract-workflows/'
+            url = 'workflows/'
         workflows = self._get_object_index(url)
         if len(workflows) < min:
             raise Error('Found %s workflows, expected at least %s' %(len(workflows), min))
@@ -178,7 +163,7 @@ class ObjectHandler(object):
     def post_abstract_workflow(self, workflow):
         return self._post_object(
             workflow,
-            'abstract-workflows/')
+            'workflows/')
 
     def get_workflow_run(self, workflow_run_id):
         return self._get_object(
@@ -250,16 +235,6 @@ class ObjectHandler(object):
             task_run_attempt_log_file,
             'task-run-attempts/%s/task-run-attempt-log-files/' % task_run_attempt_id
         )
-
-    def post_abstract_file_import(self, file_import):
-        return self._post_object(
-            file_import,
-            'abstract-file-imports/')
-
-    def update_abstract_file_import(self, file_import_id, file_import_update):
-        return self._put_object(
-            file_import_update,
-            'abstract-file-imports/%s/' % file_import_id)
 
     def get_info(self):
         try:

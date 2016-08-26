@@ -7,6 +7,7 @@
 	<th>ID</th>
         <th>Hash function</th>
 	<th>Hash value</th>
+	<th>Created</th>
       </tr>
     </thead>
     <tbody>
@@ -14,7 +15,7 @@
         <td>
 	    {{file.file_content.filename}}
 	</td>
-        <td><a ng-href="#/file/{{file.id}}">
+        <td><a ng-href="#/files/{{file.id}}">
 	    {{file.id}}
 	</a></td>
         <td>
@@ -22,6 +23,9 @@
         </td>
 	<td>
 	  {{file.file_content.unnamed_file_content.hash_value}}
+	</td>
+	<td>
+	  {{file.datetime_created | date:'medium'}}
 	</td>
       </tr>
     </tbody>
