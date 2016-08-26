@@ -67,6 +67,9 @@ class FilterHelper(object):
         self.Model = Model
 
     def filter_by_name_or_id_or_hash(self, query_string):
+        assert self.Model.NAME_FIELD, 'NAME_FIELD is missing on model %s' % self.Model.__name__
+        assert self.Model.HASH_FIELD, 'HASH_FIELD is missing on model %s' % self.Model.__name__
+        
         kwargs = {}
         name, id, hash_value = self._parse_as_name_or_id_or_hash(query_string)
         if name is not None:
@@ -81,11 +84,13 @@ class FilterHelper(object):
         """Find objects that match the identifier of form {name}@{ID}, {name},
         or @{ID}, where ID may be truncated
         """
+        assert self.Model.NAME_FIELD, 'NAME_FIELD is missing on model %s' % self.Model.__name__
+        
         kwargs = {}
         name, id = self._parse_as_name_or_id(query_string)
-        if name is not None:
+        if name:
             kwargs[self.Model.NAME_FIELD] = name
-        if id is not None:
+        if id:
             kwargs['id__startswith'] = id
         return self.Model.objects.filter(**kwargs)
 

@@ -9,7 +9,7 @@ import os
 from analysis import get_setting
 from analysis.models import DataObject, AbstractWorkflow, FileDataObject
 from analysis.serializers import TaskRunAttemptLogFileSerializer
-# from analysis.models import RunRequest, TaskRun, FileDataObject
+from analysis.models import RunRequest #, TaskRun, FileDataObject
 from loom.common import version
 
 logger = logging.getLogger('loom')
@@ -20,7 +20,6 @@ from rest_framework import viewsets
 
 
 class QueryViewSet(viewsets.ModelViewSet):
-
     def get_queryset(self):
         query_string = self.request.query_params.get('q', '')
         Model = self.Model
@@ -33,13 +32,22 @@ class DataObjectViewSet(QueryViewSet):
     Model = DataObject
     serializer_class = serializers.DataObjectSerializer
 
-class AbstractWorkflowViewSet(QueryViewSet):
+class WorkflowViewSet(QueryViewSet):
     Model = AbstractWorkflow
     serializer_class = serializers.AbstractWorkflowSerializer
 
 class ImportedWorkflowViewSet(viewsets.ModelViewSet):
-    queryset = models.AbstractWorkflow.objects.filter(workflow_import__isnull=False)
+    Model = AbstractWorkflow
     serializer_class = serializers.AbstractWorkflowSerializer
+
+    def get_queryset(self):
+        query_string = self.request.query_params.get('q', '')
+        Model = self.Model
+        if query_string:
+            return Model.query(query_string).filter(workflow_import__isnull=False)
+        else:
+            return Model.objects.all()
+
     
 class DataObjectContentViewSet(viewsets.ModelViewSet):
     queryset = models.DataObjectContent.objects.all()
@@ -101,8 +109,8 @@ class IntegerDataObjectViewSet(viewsets.ModelViewSet):
     queryset = models.IntegerDataObject.objects.all()
     serializer_class = serializers.IntegerDataObjectSerializer
 
-class RunRequestViewSet(viewsets.ModelViewSet):
-    queryset = models.RunRequest.objects.all()
+class RunRequestViewSet(QueryViewSet):
+    Model = RunRequest
     serializer_class = serializers.RunRequestSerializer
 
 class TaskRunAttemptViewSet(viewsets.ModelViewSet):
