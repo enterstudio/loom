@@ -28,8 +28,8 @@ class QueryViewSet(viewsets.ModelViewSet):
         else:
             return Model.objects.all()
 
-class DataObjectViewSet(QueryViewSet):
-    Model = DataObject
+class DataObjectViewSet(viewsets.ModelViewSet):
+    queryset = models.DataObject.objects.all()
     serializer_class = serializers.DataObjectSerializer
 
 class WorkflowViewSet(QueryViewSet):

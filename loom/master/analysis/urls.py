@@ -9,6 +9,7 @@ router = routers.DefaultRouter()
 
 router.register('abstract-workflow-runs', views.WorkflowRunViewSet)
 router.register(FileDataObject.get_class_name(plural=True, hyphen=True), views.FileDataObjectViewSet, base_name='FileDataObject')
+router.register(DataObject.get_class_name(plural=True, hyphen=True), views.DataObjectViewSet, base_name='DataObject')
 router.register('imported-file-data-objects', views.ImportedFileDataObjectViewSet)
 router.register('result-file-data-objects', views.ResultFileDataObjectViewSet)
 router.register('log-file-data-objects', views.LogFileDataObjectViewSet)
