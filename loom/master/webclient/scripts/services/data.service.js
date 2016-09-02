@@ -4,9 +4,9 @@ angular
     .module('loom.services')
     .service('DataService', DataService)
 
-DataService.$inject = ['$http'];
+DataService.$inject = ['$http', '$q'];
 
-function DataService($http) {
+function DataService($http, $q) {
     /* DataService retrieves and caches data from the server. */
     
     this.setActiveRun = setActiveRun;
@@ -18,6 +18,7 @@ function DataService($http) {
     this.getImportedFiles = getImportedFiles;
     this.getResultFiles = getResultFiles;
     this.getLogFiles = getLogFiles;
+    this.getFileProvenance = getFileProvenance;
 
     var activeData = {};
     
@@ -29,7 +30,13 @@ function DataService($http) {
 	return $http.get('/api/workflow-runs/' + runId + '/')
             .then(function(response) {
 		activeData.run = response.data;
-            });
+		if (response.data.task_runs) {
+		    return $http.get('/api/task-runs/' + activeData.run.task_runs[0].id + '/')
+			.then(function(response) {
+			    activeData.run.task_runs[0] = response.data;
+			});
+		};
+	    });
     };
 
     function setActiveTemplate(templateId) {
@@ -44,6 +51,13 @@ function DataService($http) {
             .then(function(response) {
 		activeData.file = response.data;
             });
+    };
+
+    function getFileProvenance(fileId) {
+	return $http.get('/api/file-data-objects/' + fileId + '/provenance/')
+	    .then(function(response) {
+		return response.data.provenance;
+	    });
     };
 
     function getRunRequests() {

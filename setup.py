@@ -90,6 +90,7 @@ setup(
                         'ansible==2.1.1.0',
                         'apache-libcloud==1.0.0rc2',
                         'Django>=1.8,<1.9',
+                        'django-cors-headers>=1.1.0',
                         'django-extensions>=1.5.5',
                         'django-polymorphic>=0.9.2',
                         'djangorestframework>=3.3.3',
@@ -114,7 +115,7 @@ setup(
                         'requests>=2.6.0',
                         'simplejson>=3.8.1',
                         'six>=1.10.0',
-                        'uritemplate>=0.6',
+                        'uritemplate>=0.6,<1',              # match google-api-python-client dependency
                         # For packaging; make sure desired files are tracked by git and setuptools-git is importable before running setuptools!
                         'setuptools-git>=1.1',
                         'twine',

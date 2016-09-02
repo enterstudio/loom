@@ -46,6 +46,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'polymorphic',
     'rest_framework',
     'analysis',
@@ -53,6 +54,7 @@ INSTALLED_APPS = (
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
 #    'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -265,6 +267,8 @@ GCE_PEM_FILE_PATH = os.getenv('GCE_PEM_FILE_PATH')
 GCE_INI_PATH = os.getenv('GCE_INI_PATH')
 GCE_SSH_KEY_FILE = os.getenv('GCE_SSH_KEY_FILE')
 WORKER_VM_IMAGE = os.getenv('WORKER_VM_IMAGE')
+WORKER_SKIP_INSTALLS = os.getenv('WORKER_SKIP_INSTALLS')
+SERVER_SKIP_INSTALLS = os.getenv('SERVER_SKIP_INSTALLS')
 WORKER_LOCATION = os.getenv('WORKER_LOCATION')
 WORKER_SCRATCH_DISK_MOUNT_POINT = os.getenv('WORKER_SCRATCH_DISK_MOUNT_POINT')
 WORKER_SCRATCH_DISK_TYPE = os.getenv('WORKER_SCRATCH_DISK_TYPE')
@@ -290,3 +294,8 @@ DISABLE_AUTO_PUSH = False
 GRAPH_MODELS = {
     'include_models': include_models,
 }
+
+if DEBUG:
+    CORS_ORIGIN_ALLOW_ALL = True
+else:
+    CORS_ORIGIN_WHITELIST = os.getenv('CORS_ORIGIN_WHITELIST', '').split(',')

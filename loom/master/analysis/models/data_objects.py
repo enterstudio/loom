@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import ProtectedError
 from django.utils import timezone
@@ -43,7 +44,7 @@ class DataObject(BasePolymorphicModel):
         # This is the value rendered in string representations of the object.
         # Same as substitution value for all data types except file.
         # Override in FileDataObject.
-        return self.get_content().get_substitution_value()
+        return self.get_substitution_value()
 
     def get_substitution_value(self):
         # This is the value substituted into a command
@@ -96,6 +97,8 @@ class FileDataObject(DataObject):
     def get_display_value(self):
         # This is the used as a reference to the FileDataObject
         # in serialized data.
+        if self.file_content is None:
+            return ''
         return '%s@%s' % (self.file_content.filename, self.id.hex)
 
     @classmethod
@@ -161,6 +164,49 @@ class FileDataObject(DataObject):
             pass
         # Do not delete file_location until disk space can be freed.
 
+    def get_provenance_data(self, files=None, tasks=None, edges=None):
+        if files is None:
+            files = set()
+        if tasks is None:
+            tasks = set()
+        if edges is None:
+            edges = set()
+
+        files.add(self)
+        try:
+            task_run_attempt_output =  self.task_run_attempt_output
+        except ObjectDoesNotExist:
+            return files, tasks, edges
+
+        task_run_attempt = task_run_attempt_output.task_run_attempt
+        tasks.add(task_run_attempt)
+        edges.add((task_run_attempt.id.hex, self.id.hex))
+        task_run_attempt.get_provenance_data(files, tasks, edges)
+
+        return files, tasks, edges
+
+        """
+        return {
+            'files': [
+                {'id': '1'},
+                {'id': '2'},
+                {'id': '3',
+                 'task': 'a'},
+                {'id': '4',
+                 'task': 'b'},
+                {'id': '5',
+                 'task': 'c'}
+            ],
+            'tasks': [
+                {'id': 'a',
+                 'inputs': ['1']},
+                    {'id': 'b',
+                     'inputs': ['2']},
+                    {'id': 'c',
+                     'inputs': ['3', '4']}
+            ]
+        }
+        """
 
 class FileContent(DataObjectContent):
     """Represents a file, including its content (identified by a hash), its 

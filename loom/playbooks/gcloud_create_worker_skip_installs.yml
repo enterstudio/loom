@@ -11,7 +11,7 @@
     register: gce_result
   - name: Create a scratch disk and attach it to the worker instance.
     gce_pd: instance_name={{node_name}} name={{scratch_disk_name}} disk_type={{scratch_disk_type}} size_gb={{scratch_disk_size_gb}} zone={{zone}} mode=READ_WRITE
-  - name: Wait for SSH port to be available. 
+  - name: Wait for SSH to come up.
     wait_for: host={{ item.private_ip }} port=22 delay=10 timeout=300 search_regex=OpenSSH
     with_items: '{{ gce_result.instance_data }}'
   - name: Add host to groupname.
@@ -23,8 +23,6 @@
   remote_user: loom
   become_method: sudo
   become: yes
-  roles:
-  - docker
   tasks:
   - name: Create a filesystem on the scratch disk.
     filesystem: fstype=ext4 dev={{scratch_disk_device_path}} force=no
@@ -32,21 +30,6 @@
     file: path={{scratch_disk_mount_point}} state=directory
   - name: Mount the scratch disk at the mount point.
     mount: name={{scratch_disk_mount_point}} fstype=ext4 src={{scratch_disk_device_path}} state=mounted
-  - name: Add epel repository to yum.
-    yum_repository:
-      name: epel
-      description: EPEL YUM repo
-      baseurl: http://download.fedoraproject.org/pub/epel/$releasever/$basearch/
-  - name: Add public GPG key for EPEL 7 repo.
-    rpm_key: state=present key=https://getfedora.org/static/352C64E5.txt
-  - name: Install pip, which is needed to install docker-py.
-    yum: name=python-pip state=present update_cache=yes
-    register: pip_install
-    until: pip_install|succeeded
-    retries: 10
-    delay: 10
-  - name: Install docker-py, which is required by Ansible to use Docker modules.
-    pip: name=docker-py
   - name: Pull Loom Docker image.
     docker_image: name={{docker_full_name}} tag={{docker_tag}} api_version=auto
   - name: Pull task run Docker image.
