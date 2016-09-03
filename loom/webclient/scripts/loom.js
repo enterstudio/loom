@@ -22,4 +22,4 @@ angular
     .module('loom.routes', ['ngRoute']);
 
 angular
-    .module('loom.services', []);
+    .module('loom.services', ['env']);

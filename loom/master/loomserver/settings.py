@@ -3,15 +3,68 @@
 
 import datetime
 import os
-import socket
-import sys
 import tempfile
-import warnings
 
-include_models = os.getenv('GRAPH_MODELS_INCLUDE_MODELS')
+DEBUG = os.getenv('DEBUG_TRUE', False)
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 
-BASE_DIR = os.path.dirname(__file__)
-WEBCLIENT_ROOT = os.path.abspath(os.path.join(BASE_DIR, '..', 'webclient'))
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1').split(',')
+CORS_ORIGIN_ALLOW_ALL = os.getenv('CORS_ORIGIN_ALLOW_ALL', True)
+CORS_ORIGIN_WHITELIST = os.getenv('CORS_ORIGIN_WHITELIST', '').split(',')
+
+LOOM_MYSQL_PASSWORD = os.getenv('LOOM_MYSQL_PASSWORD')
+LOOM_MYSQL_HOST = os.getenv('LOOM_MYSQL_HOST')
+LOOM_MYSQL_USER = os.getenv('LOOM_MYSQL_USER')
+LOOM_MYSQL_DB_NAME = os.getenv('LOOM_MYSQL_DB_NAME')
+LOOM_MYSQL_PORT = os.getenv('LOOM_MYSQL_PORT')
+LOOM_MYSQL_SSL_CA_CERT_PATH = os.getenv('LOOM_MYSQL_SSL_CA_CERT_PATH')
+LOOM_MYSQL_SSL_CLIENT_CERT_PATH = os.getenv('LOOM_MYSQL_SSL_CLIENT_CERT_PATH')
+LOOM_MYSQL_SSL_CLIENT_KEY_PATH = os.getenv('LOOM_MYSQL_SSL_CLIENT_KEY_PATH')
+
+WORKER_TYPE = os.getenv('WORKER_TYPE', 'LOCAL')
+MASTER_URL_FOR_WORKER = os.getenv('MASTER_URL_FOR_WORKER', 'http://127.0.0.1:8000')
+MASTER_URL_FOR_SERVER = os.getenv('MASTER_URL_FOR_SERVER', 'http://127.0.0.1:8000')
+FILE_ROOT = os.getenv('FILE_ROOT', tempfile.mkdtemp())
+FILE_ROOT_FOR_WORKER = os.getenv('FILE_ROOT_FOR_WORKER')
+FILE_SERVER_TYPE = os.getenv('FILE_SERVER_TYPE', 'LOCAL')
+LOGS_DIR = os.getenv('LOGS_DIR')
+
+PROJECT_ID = os.getenv('GCE_PROJECT', '')   # Used by loom.common.filehandler.GoogleStorageSource and GoogleStorageDestination
+                                            # Retrieved but not used when filehandler is LocalSource and LocalDestination, so need to set a default value
+BUCKET_ID = os.getenv('GCE_BUCKET', '')
+
+GCE_PEM_FILE_PATH = os.getenv('GCE_PEM_FILE_PATH')
+GCE_INI_PATH = os.getenv('GCE_INI_PATH')
+GCE_SSH_KEY_FILE = os.getenv('GCE_SSH_KEY_FILE')
+
+WORKER_VM_IMAGE = os.getenv('WORKER_VM_IMAGE')
+SERVER_VM_IMAGE = os.getenv('SERVER_VM_IMAGE')
+WORKER_SKIP_INSTALLS = os.getenv('WORKER_SKIP_INSTALLS')
+SERVER_SKIP_INSTALLS = os.getenv('SERVER_SKIP_INSTALLS')
+WORKER_LOCATION = os.getenv('WORKER_LOCATION')
+WORKER_SCRATCH_DISK_MOUNT_POINT = os.getenv('WORKER_SCRATCH_DISK_MOUNT_POINT')
+WORKER_SCRATCH_DISK_TYPE = os.getenv('WORKER_SCRATCH_DISK_TYPE')
+WORKER_SCRATCH_DISK_SIZE = os.getenv('WORKER_SCRATCH_DISK_SIZE')
+WORKER_BOOT_DISK_TYPE = os.getenv('WORKER_BOOT_DISK_TYPE')
+WORKER_BOOT_DISK_SIZE = os.getenv('WORKER_BOOT_DISK_SIZE')
+WORKER_NETWORK = os.getenv('WORKER_NETWORK')
+WORKER_TAGS = os.getenv('WORKER_TAGS')
+DOCKER_TAG = os.getenv('DOCKER_TAG')
+DOCKER_FULL_NAME = os.getenv('DOCKER_FULL_NAME')
+
+HASH_FUNCTION = 'md5'
+
+KEEP_DUPLICATE_FILES = os.getenv('KEEP_DUPLICATE_FILES',  True)
+FORCE_RERUN = os.getenv('FORCE_RERUN', True)
+
+HARD_STOP_ON_CANCEL = os.getenv('HARD_STOP_ON_CANCEL', True)
+HARD_STOP_ON_FAIL = os.getenv('HARD_STOP_ON_FAIL', True)
+
+DISABLE_AUTO_PUSH = os.getenv('DISABLE_AUTO_PUSH', False)
+
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 
 def get_secret_key():
     SECRET_FILE = os.path.join(BASE_DIR, 'secret.txt')
@@ -32,20 +85,12 @@ def get_secret_key():
 
 SECRET_KEY = get_secret_key()
 
-# TODO
-# if os.getenv('LOOM_DEBUG_TRUE'):
-DEBUG = True
-TEMPLATE_DEBUG = True
-
-ALLOWED_HOSTS = ['127.0.0.1']
-
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes', #required by polymorphic
     'django_extensions',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
     'corsheaders',
     'polymorphic',
     'rest_framework',
@@ -80,14 +125,6 @@ REST_FRAMEWORK = {
 
 APPEND_SLASH = False
 
-LOOM_MYSQL_PASSWORD = os.getenv('LOOM_MYSQL_PASSWORD')
-LOOM_MYSQL_HOST = os.getenv('LOOM_MYSQL_HOST')
-LOOM_MYSQL_USER = os.getenv('LOOM_MYSQL_USER')
-LOOM_MYSQL_DB_NAME = os.getenv('LOOM_MYSQL_DB_NAME')
-LOOM_MYSQL_PORT = os.getenv('LOOM_MYSQL_PORT')
-LOOM_MYSQL_SSL_CA_CERT_PATH = os.getenv('LOOM_MYSQL_SSL_CA_CERT_PATH')
-LOOM_MYSQL_SSL_CLIENT_CERT_PATH = os.getenv('LOOM_MYSQL_SSL_CLIENT_CERT_PATH')
-LOOM_MYSQL_SSL_CLIENT_KEY_PATH = os.getenv('LOOM_MYSQL_SSL_CLIENT_KEY_PATH')
 
 def get_sqlite_database_name():
     DATABASE_NAME_FILE = os.path.join(BASE_DIR, 'sqlite_dbname.txt')
@@ -200,12 +237,7 @@ def _get_loom_handler():
             }
     return handler
 
-def _get_log_level():
-    DEFAULT_LOG_LEVEL = 'INFO'
-    LOG_LEVEL = os.getenv('LOG_LEVEL', DEFAULT_LOG_LEVEL)
-    return LOG_LEVEL.upper()
 
-LOG_LEVEL = _get_log_level()
 
 LOGGING = {
     'version': 1,
@@ -239,63 +271,3 @@ LOGGING = {
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_TZ = True
-
-STATIC_URL = '/home/'
-
-STATICFILES_DIRS = [
-    WEBCLIENT_ROOT,
-]
-
-# Graph Models settings to generate model schema plots
-GRAPH_MODELS = {
-    'include_models': include_models,
-}
-
-# Get settings from the environment and expand paths if needed
-WORKER_TYPE = os.getenv('WORKER_TYPE', 'LOCAL')
-MASTER_URL_FOR_WORKER = os.getenv('MASTER_URL_FOR_WORKER', 'http://127.0.0.1:8000')
-MASTER_URL_FOR_SERVER = os.getenv('MASTER_URL_FOR_SERVER', 'http://127.0.0.1:8000')
-FILE_ROOT = os.getenv('FILE_ROOT', tempfile.mkdtemp())
-FILE_ROOT_FOR_WORKER = os.getenv('FILE_ROOT_FOR_WORKER')
-FILE_SERVER_TYPE = os.getenv('FILE_SERVER_TYPE', 'LOCAL')
-LOGS_DIR = os.getenv('LOGS_DIR')
-
-PROJECT_ID = os.getenv('GCE_PROJECT', '')   # Used by loom.common.filehandler.GoogleStorageSource and GoogleStorageDestination
-                                            # Retrieved but not used when filehandler is LocalSource and LocalDestination, so need to set a default value
-BUCKET_ID = os.getenv('GCE_BUCKET', '')
-GCE_PEM_FILE_PATH = os.getenv('GCE_PEM_FILE_PATH')
-GCE_INI_PATH = os.getenv('GCE_INI_PATH')
-GCE_SSH_KEY_FILE = os.getenv('GCE_SSH_KEY_FILE')
-WORKER_VM_IMAGE = os.getenv('WORKER_VM_IMAGE')
-WORKER_SKIP_INSTALLS = os.getenv('WORKER_SKIP_INSTALLS')
-SERVER_SKIP_INSTALLS = os.getenv('SERVER_SKIP_INSTALLS')
-WORKER_LOCATION = os.getenv('WORKER_LOCATION')
-WORKER_SCRATCH_DISK_MOUNT_POINT = os.getenv('WORKER_SCRATCH_DISK_MOUNT_POINT')
-WORKER_SCRATCH_DISK_TYPE = os.getenv('WORKER_SCRATCH_DISK_TYPE')
-WORKER_SCRATCH_DISK_SIZE = os.getenv('WORKER_SCRATCH_DISK_SIZE')
-WORKER_BOOT_DISK_TYPE = os.getenv('WORKER_BOOT_DISK_TYPE')
-WORKER_BOOT_DISK_SIZE = os.getenv('WORKER_BOOT_DISK_SIZE')
-WORKER_NETWORK = os.getenv('WORKER_NETWORK')
-WORKER_TAGS = os.getenv('WORKER_TAGS')
-DOCKER_TAG = os.getenv('DOCKER_TAG')
-DOCKER_FULL_NAME = os.getenv('DOCKER_FULL_NAME')
-
-HASH_FUNCTION = 'md5'
-
-KEEP_DUPLICATE_FILES = True
-FORCE_RERUN = True
-
-HARD_STOP_ON_CANCEL = True
-HARD_STOP_ON_FAIL = True
-
-DISABLE_AUTO_PUSH = False
-
-# Graph Models settings to generate model schema plots
-GRAPH_MODELS = {
-    'include_models': include_models,
-}
-
-if DEBUG:
-    CORS_ORIGIN_ALLOW_ALL = True
-else:
-    CORS_ORIGIN_WHITELIST = os.getenv('CORS_ORIGIN_WHITELIST', '').split(',')

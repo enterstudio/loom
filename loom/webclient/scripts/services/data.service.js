@@ -4,11 +4,14 @@ angular
     .module('loom.services')
     .service('DataService', DataService)
 
-DataService.$inject = ['$http', '$q'];
+DataService.$inject = ['$http', 'ENV'];
 
-function DataService($http, $q) {
+function DataService($http, ENV) {
     /* DataService retrieves and caches data from the server. */
-    
+
+    var apiEndpoint = ENV.apiEndpoint;
+    console.log(apiEndpoint);
+
     this.setActiveRun = setActiveRun;
     this.setActiveTemplate = setActiveTemplate;
     this.setActiveFile = setActiveFile;
@@ -27,11 +30,11 @@ function DataService($http, $q) {
     };
 
     function setActiveRun(runId) {
-	return $http.get('/api/workflow-runs/' + runId + '/')
+	return $http.get(apiEndpoint + 'workflow-runs/' + runId + '/')
             .then(function(response) {
 		activeData.run = response.data;
 		if (response.data.task_runs) {
-		    return $http.get('/api/task-runs/' + activeData.run.task_runs[0].id + '/')
+		    return $http.get(apiEndpoint + 'task-runs/' + activeData.run.task_runs[0].id + '/')
 			.then(function(response) {
 			    activeData.run.task_runs[0] = response.data;
 			});
@@ -40,54 +43,54 @@ function DataService($http, $q) {
     };
 
     function setActiveTemplate(templateId) {
-	return $http.get('/api/workflows/' + templateId + '/')
+	return $http.get(apiEndpoint + 'workflows/' + templateId + '/')
             .then(function(response) {
 		activeData.template = response.data;
             });
     };
 
     function setActiveFile(fileId) {
-	return $http.get('/api/files/' + fileId + '/')
+	return $http.get(apiEndpoint + 'files/' + fileId + '/')
             .then(function(response) {
 		activeData.file = response.data;
             });
     };
 
     function getFileProvenance(fileId) {
-	return $http.get('/api/file-data-objects/' + fileId + '/provenance/')
+	return $http.get(apiEndpoint + 'file-data-objects/' + fileId + '/provenance/')
 	    .then(function(response) {
 		return response.data.provenance;
 	    });
     };
 
     function getRunRequests() {
-	return $http.get('/api/run-requests/')
+	return $http.get(apiEndpoint + 'run-requests/')
 	    .then(function(response) {
 		return response.data;
 	    });
     };
 
     function getTemplates() {
-	return $http.get('/api/imported-workflows/')
+	return $http.get(apiEndpoint + 'imported-workflows/')
 	    .then(function(response) {
 		return response.data;
 	    });
     };
 
     function getImportedFiles() {
-	return $http.get('/api/imported-files/')
+	return $http.get(apiEndpoint + 'imported-files/')
 	    .then(function(response) {
 		return response.data;
 	    });
     };
     function getResultFiles() {
-	return $http.get('/api/result-files/')
+	return $http.get(apiEndpoint + 'result-files/')
 	    .then(function(response) {
 		return response.data;
 	    });
     };
     function getLogFiles() {
-	return $http.get('/api/log-files/')
+	return $http.get(apiEndpoint + 'log-files/')
 	    .then(function(response) {
 		return response.data;
 	    });

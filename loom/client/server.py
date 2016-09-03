@@ -355,7 +355,7 @@ class LocalServerControls(BaseServerControls):
                 if proc.returncode != 0 or re.search('Error', output[0]):
                     msg = "Failed to apply database migrations. Exiting now. "
                     if self.args.verbose:
-                        msg += stdout[0]
+                        msg += output[0]
                     raise Exception(msg)
         return env
 
