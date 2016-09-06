@@ -96,6 +96,7 @@ setup(
                         'djangorestframework>=3.3.3',
                         'docutils>=0.12',
                         'docker-py',                        # used by server to run NGINX container
+                        'python-dateutil',
                         'gcloud>=0.8.0,<0.10.0',
                         'google-api-python-client>=1.5.0',  #1.5.0 requires oath2client>=2.0.0
                         'google-apitools>=0.4.13',

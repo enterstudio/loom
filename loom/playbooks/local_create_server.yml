@@ -1,0 +1,8 @@
+---
+- name: Set up the Loom server on localhost.
+  hosts: all
+  connection: local
+  vars:
+  - ansible_python_interpreter: python
+  roles:
+  - local_loom_master

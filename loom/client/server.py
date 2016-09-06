@@ -33,6 +33,7 @@ GCLOUD_STOP_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'gcloud_stop_server.yml')
 GCLOUD_DELETE_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'gcloud_delete_server.yml')
 GCLOUD_CREATE_BUCKET_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'gcloud_create_bucket.yml')
 GCLOUD_SETUP_LOOM_USER_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'gcloud_setup_loom_user.yml')
+LOCAL_CREATE_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'local_create_server.yml')
 NGINX_CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), 'nginx.conf'))
 
 def ServerControlsFactory(args):
@@ -152,9 +153,32 @@ class BaseServerControls:
         else:
             print 'No response for server at %s. Do you need to run "loom server start"?' % get_server_url()
 
+    def get_ansible_env(self):
+        """Load settings needed for Ansible into environment variables, where
+        they will be read by the Ansible playbook. Start with everything in
+        the deploy settings file, then add other variables that shouldn't be
+        in the file (such as absolute paths containing the user home dir).
+        """
+        self.settings_manager.load_deploy_settings_file()
+        env = os.environ.copy()
+        env['DEPLOY_SETTINGS_FILENAME'] = get_deploy_settings_filename()
+        env['LOOM_HOME_SUBDIR'] = LOOM_HOME_SUBDIR
+        env.update(self.settings_manager.get_env_settings())
+        return env
+
+    def _create_deploy_settings(self):
+        if hasattr(self.args, 'settings') and self.args.settings != None:
+            print 'Creating deploy settings %s using user settings %s...' % (get_deploy_settings_filename(), self.args.settings)
+            self.settings_manager.create_deploy_settings_file(user_settings_file=self.args.settings)
+        else:
+            print 'Creating deploy settings %s using default settings...' % get_deploy_settings_filename()
+            self.settings_manager.create_deploy_settings_file()
+
 
 class LocalServerControls(BaseServerControls):
     """Subclass for managing a server running on localhost."""
+
+    LOCAL_INVENTORY = '127.0.0.1,'
 
     def __init__(self, args=None):
         BaseServerControls.__init__(self, args)
@@ -170,6 +194,12 @@ class LocalServerControls(BaseServerControls):
             'delete': self.delete,
         }
         return command_to_method_map
+
+    def run_playbook(self, playbook, env):
+        cmd_list = ['ansible-playbook', '-i', self.LOCAL_INVENTORY, playbook]
+        if self.args.verbose:
+            cmd_list.append('-vvv')
+        return subprocess.call(cmd_list, env=env)
 
     def start(self):
         if not is_server_running():
@@ -370,8 +400,10 @@ class LocalServerControls(BaseServerControls):
 
     def create(self):
         '''Create server deploy settings. Overwrite existing ones.'''
-        self.settings_manager.create_deploy_settings_file(self.args.settings)
-        print 'Created deploy settings at %s.' % get_deploy_settings_filename()
+        self._create_deploy_settings()
+        env = self.get_ansible_env()
+        self.run_playbook(LOCAL_CREATE_PLAYBOOK, env)
+
 
     def delete(self):
         '''Stops server and deletes deploy settings.'''
@@ -401,39 +433,6 @@ class GoogleCloudServerControls(BaseServerControls):
         }
         return command_to_method_map
 
-    def get_ansible_env(self):
-        """Load settings needed for Ansible into environment variables, where
-        they will be read by the Ansible playbook. Start with everything in
-        the deploy settings file, then add other variables that shouldn't be
-        in the file (such as absolute paths containing the user home dir).
-        """
-        self.settings_manager.load_deploy_settings_file()
-        env = os.environ.copy()
-        env['DEPLOY_SETTINGS_FILENAME'] = get_deploy_settings_filename()
-        env['LOOM_HOME_SUBDIR'] = LOOM_HOME_SUBDIR
-        env.update(self.settings_manager.get_env_settings())
-        return env
-
-    def create(self):
-        """Create server deploy settings if they don't exist yet, set up SSH
-        keys, create and set up a gcloud instance, copy deploy settings to the
-        instance."""
-        if hasattr(self.args, 'settings') and self.args.settings != None:
-            print 'Creating deploy settings %s using user settings %s...' % (get_deploy_settings_filename(), self.args.settings)
-            self.settings_manager.create_deploy_settings_file(user_settings_file=self.args.settings)
-        else:
-            print 'Creating deploy settings %s using default settings...' % get_deploy_settings_filename()
-            self.settings_manager.create_deploy_settings_file()
-
-        setup_gcloud_ssh()
-        env = self.get_ansible_env()
-
-        self.run_playbook(GCLOUD_CREATE_BUCKET_PLAYBOOK, env)
-        if self.settings_manager.settings['SERVER_SKIP_INSTALLS'] == 'True':
-            return self.run_playbook(GCLOUD_CREATE_SKIP_INSTALLS_PLAYBOOK, env)
-        else:
-            return self.run_playbook(GCLOUD_CREATE_PLAYBOOK, env)
-        
     def run_playbook(self, playbook, env):
         if self.settings_manager.settings['CLIENT_USES_SERVER_INTERNAL_IP'] == 'True':
             env['INVENTORY_IP_TYPE'] = 'internal'   # Tell gce.py to use internal IP for ansible_ssh_host
@@ -445,14 +444,22 @@ class GoogleCloudServerControls(BaseServerControls):
         if self.args.verbose:
             cmd_list.append('-vvv')
         return subprocess.call(cmd_list, env=env)
+        
+    def create(self):
+        """Create server deploy settings if they don't exist yet, set up SSH
+        keys, create and set up a gcloud instance, copy deploy settings to the
+        instance."""
 
-    def build_docker_image(self, build_path, docker_name, docker_tag):
-        """Build Docker image using current code. Dockerfile must exist at build_path."""
-        subprocess.call(['docker', 'build', build_path, '-t', '%s:%s' % (docker_name, docker_tag)])
+        self._create_deploy_settings()
 
-    def push_docker_image(self, docker_tag):
-        """Use gcloud to push Docker image to registry specified in tag."""
-        subprocess.call(['docker', 'push', docker_tag])
+        setup_gcloud_ssh()
+        env = self.get_ansible_env()
+
+        self.run_playbook(GCLOUD_CREATE_BUCKET_PLAYBOOK, env)
+        if self.settings_manager.settings['SERVER_SKIP_INSTALLS'] == 'True':
+            return self.run_playbook(GCLOUD_CREATE_SKIP_INSTALLS_PLAYBOOK, env)
+        else:
+            return self.run_playbook(GCLOUD_CREATE_PLAYBOOK, env)
 
     def start(self):
         """Start the gcloud server instance, then start the Loom server."""
