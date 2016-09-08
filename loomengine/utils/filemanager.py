@@ -456,7 +456,7 @@ class FileManager:
 
     def __init__(self, master_url, logger=None):
         self.connection = Connection(master_url)
-        self.settings = self.connection.get_filehandler_settings()
+        self.settings = self.connection.get_filemanager_settings()
         self.logger = logger
         stdout_logger = StreamToLogger(self.logger, logging.INFO)
         sys.stdout = stdout_logger

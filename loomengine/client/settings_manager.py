@@ -54,8 +54,8 @@ class SettingsManager:
 
         # Add other settings from gce.ini
         gce_config = SafeConfigParser(allow_no_value=True)
-        gce_config.read(os.path.expanduser(GCE_INI_PATH))
-        self.settings['GCE_INI_PATH'] = GCE_INI_PATH
+        gce_config.read(os.path.expanduser(self.settings.get('GCE_INI_PATH')))
+        self.settings['GCE_PY_PATH'] = os.path.join(imp.find_module('loomengine')[1], 'utils', 'gce.py')
         self.settings['GCE_EMAIL'] = gce_config.get('gce', 'gce_service_account_email_address')
         self.settings['GCE_PROJECT'] = gce_config.get('gce', 'gce_project_id')
         self.settings['GCE_PEM_FILE_PATH'] = gce_config.get('gce', 'gce_service_account_pem_file_path')
@@ -67,13 +67,15 @@ class SettingsManager:
 
     def postprocess_settings(self):
         """Write settings that depend on other settings being defined first."""
-        self.settings['DOCKER_FULL_NAME'] = '%s/%s:%s' % (self.settings['DOCKER_REPO'], self.settings['DOCKER_IMAGE'], self.settings['DOCKER_TAG'])
+        self.settings['DOCKER_FULL_NAME_MASTER'] = '%s/%s:%s' % (self.settings['DOCKER_REPO_MASTER'], self.settings['DOCKER_IMAGE_MASTER'], self.settings['DOCKER_TAG_MASTER'])
+        self.settings['DOCKER_FULL_NAME_WORKER'] = '%s/%s:%s' % (self.settings['DOCKER_REPO_WORKER'], self.settings['DOCKER_IMAGE_WORKER'], self.settings['DOCKER_TAG_WORKER'])
         if self.settings['DOCKER_REGISTRY']:
-            self.settings['DOCKER_FULL_NAME'] = '/'.join([self.settings['DOCKER_REGISTRY'], self.settings['DOCKER_FULL_NAME']])
+            self.settings['DOCKER_FULL_NAME_MASTER'] = '/'.join([self.settings['DOCKER_REGISTRY'], self.settings['DOCKER_FULL_NAME_MASTER']])
+            self.settings['DOCKER_FULL_NAME_WORKER'] = '/'.join([self.settings['DOCKER_REGISTRY'], self.settings['DOCKER_FULL_NAME_WORKER']])
 
     def create_deploy_settings_file(self, user_settings_file=None):
         self.create_deploy_settings(user_settings_file=user_settings_file)
-        self.save_settings_to_file(get_deploy_settings_filename(), section='deploy')
+        self.save_settings_to_file(get_deploy_settings_filename())
 
     def load_deploy_settings_file(self):
         try:
@@ -81,6 +83,9 @@ class SettingsManager:
         except:
             raise SettingsError("Could not open server deploy settings at %s. You might need to run \"loom server create\" first." % get_deploy_settings_filename())
 
+    def get_deploy_settings(self):
+        return self.settings
+        
     def delete_deploy_settings_file(self):
         os.remove(get_deploy_settings_filename())
 

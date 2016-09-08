@@ -1,5 +1,1 @@
-client_version: "{{lookup('env','CLIENT_VERSION')}}"
-deploy_settings_filename: "{{lookup('env', 'DEPLOY_SETTINGS_FILENAME')}}"
-remote_loom_settings_path: "{{ansible_env.HOME}}/{{lookup('env', 'LOOM_HOME_SUBDIR')}}"
-docker_tag: "{{lookup('env','DOCKER_TAG')}}"
-docker_full_name: "{{lookup('env','DOCKER_FULL_NAME')}}"
+loom_env: "{{lookup('env','LOOM_ENV')}}"

@@ -28,6 +28,7 @@ GCLOUD_DELETE_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'gcloud_delete_server.yml'
 GCLOUD_CREATE_BUCKET_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'gcloud_create_bucket.yml')
 GCLOUD_SETUP_LOOM_USER_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'gcloud_setup_loom_user.yml')
 LOCAL_CREATE_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'local_create_server.yml')
+LOCAL_START_PLAYBOOK = os.path.join(PLAYBOOKS_PATH, 'local_start_server.yml')
 NGINX_CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), 'nginx.conf'))
 
 def ServerControlsFactory(args):
@@ -80,7 +81,7 @@ def get_parser(parser=None):
     delete_parser = subparsers.add_parser('delete')
     delete_parser.add_argument('--verbose', '-v', action='store_true', help='Provide more feedback to console.')
 
-    setserver_parser = subparsers.add_parser('set', help='Tells the client how to find the Loom server. This information is stored in %s.' % SERVER_LOCATION_FILE)
+    setserver_parser = subparsers.add_parser('set', help='Tells the client how to find the Loom server.')
     setserver_parser.add_argument('type', choices=['local', 'gcloud'], help='The type of server the client will manage.')
     setserver_parser.add_argument('--name', help='Not used for local. For gcloud, the instance name of the server to manage. If not provided, defaults to %s.' % GCLOUD_SERVER_DEFAULT_NAME, metavar='GCE_INSTANCE_NAME', default=GCLOUD_SERVER_DEFAULT_NAME)
 
@@ -200,18 +201,15 @@ class LocalServerControls(BaseServerControls):
                 self.create()
             self.settings_manager.load_deploy_settings_file()
 
-            if loomengine.utils.cloud.on_gcloud_vm():
-                """We're in gcloud and the client is starting the server on the local instance."""
-                subprocess.call(['ansible-playbook', GCLOUD_SETUP_LOOM_USER_PLAYBOOK])
-                self.settings_manager.add_gcloud_settings_on_server()
+            #if loomengine.utils.cloud.on_gcloud_vm():
+            #    """We're in gcloud and the client is starting the server on the local instance."""
+            #    subprocess.call(['ansible-playbook', GCLOUD_SETUP_LOOM_USER_PLAYBOOK])
+            #    self.settings_manager.add_gcloud_settings_on_server()
 
-            env = os.environ.copy()
-            env = self._add_server_to_python_path(env)
-            env = self._export_django_settings(env)
-            env = self._set_database(env)
-            self._create_logdirs()
+            env = {'loom_env': self.settings_manager.get_settings()}
             print 'Starting Loom server...'
-            self._start_webserver(env)
+            import pdb; pdb.set_trace()
+            self.run_playbook(LOCAL_START_PLAYBOOK, env)
             self._wait_for_server(target_running_state=True)
         print 'Loom server is running.'
 
@@ -244,38 +242,6 @@ class LocalServerControls(BaseServerControls):
                 return
             time.sleep(poll_interval_seconds)
 
-    def _create_logdirs(self):
-        for logfile in (self.settings_manager.settings['ACCESS_LOGFILE'],
-                        self.settings_manager.settings['ERROR_LOGFILE'],
-                        ):
-            logdir = os.path.dirname(os.path.expanduser(logfile))
-            if not os.path.exists(logdir):
-                os.makedirs(logdir)
-        
-    def _start_webserver(self, env):
-        cmd = "gunicorn %s --bind %s:%s --pid %s --access-logfile %s --error-logfile %s --log-level %s --capture-output" % (
-                self.settings_manager.settings['SERVER_WSGI_MODULE'],
-                self.settings_manager.settings['BIND_IP'],
-                self.settings_manager.settings['BIND_PORT'],
-                self.settings_manager.settings['WEBSERVER_PIDFILE'],
-                self.settings_manager.settings['ACCESS_LOGFILE'],
-                self.settings_manager.settings['ERROR_LOGFILE'],
-                self.settings_manager.settings['LOG_LEVEL'],
-                )
-        if not self.args.foreground:
-            cmd = cmd + " --daemon"
-        if self.args.verbose:
-            print("Starting webserver with command:\n%s\nand environment:\n%s" % (cmd, env))
-        process = subprocess.Popen(
-            cmd,
-            shell=True,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        (stdout, stderr) = process.communicate()
-        if not process.returncode == 0:
-            raise Exception('Loom webserver failed to start, with return code "%s". \nFailed command is "%s". \n%s \n%s' % (process.returncode, cmd, stdout, stderr))
-
     def _stop_webserver(self):
         pid = self._get_pid(self.settings_manager.settings['WEBSERVER_PIDFILE'])
         if pid is not None:
@@ -284,73 +250,6 @@ class LocalServerControls(BaseServerControls):
                 shell=True,
                 )
         self._cleanup_pidfile(self.settings_manager.settings['WEBSERVER_PIDFILE'])
-
-    def _get_pid(self, pidfile):
-        if not os.path.exists(pidfile):
-            return None
-        try:
-            with open(pidfile) as f:
-                pid = f.read().strip()
-                self._validate_pid(pid)
-                return pid
-        except:
-            return None
-
-    def _validate_pid(self, pid):
-        if not re.match('^[0-9]*$', pid):
-            raise Exception('Invalid pid "%s" found in pidfile %s' % (pid, pidfile))
-
-    def _cleanup_pidfile(self, pidfile):
-        if os.path.exists(pidfile):
-            try:
-                os.remove(pidfile)
-            except:
-                warnings.warn('Failed to delete PID file %s' % pidfile)
-
-    def _add_server_to_python_path(self, env):
-        env.setdefault('PYTHONPATH', '')
-        env['PYTHONPATH'] = "%s:%s" % (SERVER_PATH, env['PYTHONPATH'])
-        return env
-
-    def _set_database(self, env):
-        manage_cmd = [sys.executable, '%s/manage.py' % SERVER_PATH]
-        if self.args.test_database:
-            # If test database requested, set LOOM_TEST_DATABASE to true and reset database
-            env['LOOM_TEST_DATABASE'] = 'true'
-            commands = [
-                manage_cmd + ['flush', '--noinput'],
-                manage_cmd + ['migrate'],
-                ]
-            for command in commands:
-                stdout = subprocess.Popen(
-                    command,
-                    stdout=subprocess.PIPE,
-                    env=env).communicate()
-        else:
-            proc = subprocess.Popen(
-                manage_cmd + ['migrate', '-l'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                env=env)
-            output = proc.communicate()
-            if proc.returncode != 0 or re.search('Error', output[0]):
-                msg = "Loom could not connect to its database. Exiting now. "
-                if self.args.verbose:
-                    msg += output[0]
-                raise Exception(msg)
-            elif re.search('\[ \]', output[0]):
-  	        print("Welcome to Loom!\nInitializing database for first use...")
-                proc = subprocess.Popen(
-		    manage_cmd + ['migrate'],
-		    stdout=subprocess.PIPE,
-		    env=env)
-                output = proc.communicate()
-                if proc.returncode != 0 or re.search('Error', output[0]):
-                    msg = "Failed to apply database migrations. Exiting now. "
-                    if self.args.verbose:
-                        msg += output[0]
-                    raise Exception(msg)
-        return env
 
     def _export_django_settings(self, env):
         """Update the environment with settings before launching the webserver.

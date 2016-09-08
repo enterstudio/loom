@@ -16,19 +16,11 @@ import loomengine.client.settings_manager
 from .exceptions import *
 from loomengine.utils import connection
 
-
-LOOM_HOME_SUBDIR = '.loom'
-LOOM_SETTINGS_PATH = os.path.join('~', LOOM_HOME_SUBDIR)
-SERVER_LOCATION_FILE = os.path.join(LOOM_SETTINGS_PATH, 'server.ini')
-SSL_CERT_PATH = os.path.expanduser(os.path.join(LOOM_SETTINGS_PATH, 'ssl.crt'))
-SSL_KEY_PATH = os.path.expanduser(os.path.join(LOOM_SETTINGS_PATH, 'ssl.key'))
-GCE_INI_PATH = os.path.join(LOOM_SETTINGS_PATH, 'gce.ini')
-GCE_JSON_PATH = os.path.join(LOOM_SETTINGS_PATH, 'gce_key.json')
-GCE_PY_PATH = os.path.join(imp.find_module('loomengine')[1], 'utils', 'gce.py')
+DEFAULT_SERVER_LOCATION_FILE = settings_manager.SettingsManager().get_default_setting('default', 'SERVER_LOCATION_FILE')
 
 def get_server_type():
     """Checks server.ini for server type."""
-    server_location_file = os.path.expanduser(SERVER_LOCATION_FILE)
+    server_location_file = os.path.expanduser(DEFAULT_SERVER_LOCATION_FILE)
     if not os.path.exists(server_location_file):
         raise Exception("%s not found. Please run 'loom server set <servertype>' first." % server_location_file)
     config = ConfigParser.SafeConfigParser()
@@ -105,7 +97,7 @@ def get_server_url():
     return '%s://%s:%s' % (protocol, ip, port)
 
 def get_deploy_settings_filename():
-    return os.path.expanduser(os.path.join(LOOM_SETTINGS_PATH, get_server_type() + '_deploy_settings.ini'))
+    return os.path.expanduser(os.path.join(LOOM_SETTINGS_PATH, 'loom-%s-settings.env' % get_server_type()))
 
 def is_server_running():
     try:

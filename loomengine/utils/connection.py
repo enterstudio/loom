@@ -265,7 +265,7 @@ class Connection(object):
             'task-run-attempts/%s/worker-settings/' % attempt_id
         )
 
-    def get_filehandler_settings(self):
+    def get_filemanager_settings(self):
         return self._get_object(
             'filehandler-settings/'
         )

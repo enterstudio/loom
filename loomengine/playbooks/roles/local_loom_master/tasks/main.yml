@@ -1,4 +1,4 @@
   - name: Pull Docker image.
-    docker_image: name={{docker_full_name}} tag={{docker_tag}}
+    docker_image: name={{loom_env.docker_full_name}} tag={{loom_env.docker_tag}}
   - name: Pull NGINX image.
     docker_image: name=nginx tag=stable
