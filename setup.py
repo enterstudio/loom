@@ -10,15 +10,19 @@ from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
-from loom.common import version
+
+with open(path.join(
+        path.dirname(__file__),
+        'loomengine',
+        'VERSION')) as versionfile:
+    version = versionfile.read().strip()
+
 
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
-
-version = version.version()
 
 setup(
     name='loomengine',
@@ -121,7 +125,7 @@ setup(
                         'setuptools-git>=1.1',
                         'twine',
     ],
-
+    
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
@@ -149,8 +153,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
      entry_points={
          'console_scripts': [
-             'loom=loom.client.main:main',
-             'loom-taskrunner=loom.worker.task_runner:main',
+             'loom=loomengine.client.main:main',
          ],
      },
 )
