@@ -93,7 +93,7 @@ setup(
                         'django-cors-headers>=1.1.0',
                         'django-extensions>=1.5.5',
                         'django-polymorphic>=0.9.2',
-                        'djangorestframework==3.5.1',
+                        'djangorestframework==3.4.7',
                         'docutils>=0.12',
                         'docker-py==1.9.0',                 # used by Ansible to run Docker modules and Loom server to run NGINX container
                         'gcloud>=0.8.0,<0.10.0',
@@ -115,7 +115,6 @@ setup(
                         'requests>=2.6.0,<2.11',            # match docker-py dependency
                         'simplejson>=3.8.1',
                         'six>=1.10.0',
-                        'uritemplate>=0.6',
                         # For packaging; make sure desired files are tracked by git and setuptools-git is importable before running setuptools!
                         'setuptools-git>=1.1',
                         'twine',
